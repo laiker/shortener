@@ -22,7 +22,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqUrl, err := io.ReadAll(r.Body)
+	reqURL, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
@@ -30,7 +30,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uri, err := url.ParseRequestURI(string(reqUrl))
+	uri, err := url.ParseRequestURI(string(reqURL))
 	if err != nil {
 		http.Error(w, "Invalid Url", http.StatusBadRequest)
 		return
