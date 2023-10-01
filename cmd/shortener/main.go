@@ -40,7 +40,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(str)
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write(encodeUrl(uri.String(), r))
+	w.Write(encodeURL(uri.String(), r))
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func decodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	result, err := decodeUrl(params["id"])
+	result, err := decodeURL(params["id"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -62,7 +62,7 @@ func decodeHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func decodeUrl(code string) ([]byte, error) {
+func decodeURL(code string) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(code)
 
 	if err != nil {
@@ -72,7 +72,7 @@ func decodeUrl(code string) ([]byte, error) {
 	return data, nil
 }
 
-func encodeUrl(url string, r *http.Request) []byte {
+func encodeURL(url string, r *http.Request) []byte {
 	encodeStr := base64.StdEncoding.EncodeToString([]byte(url))
 	return []byte(fmt.Sprintf("%v://%v/%v", getScheme(r), r.Host, encodeStr))
 }
