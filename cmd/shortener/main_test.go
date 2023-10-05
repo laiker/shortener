@@ -138,7 +138,9 @@ func Test_encodeHandler(t *testing.T) {
 			encodeHandler(w, request)
 			result := w.Result()
 
+			defer result.Body.Close()
 			respBody, _ := io.ReadAll(result.Body)
+
 			assert.Equal(t, tt.want.response, string(respBody))
 			assert.Equal(t, tt.want.code, result.StatusCode)
 		})

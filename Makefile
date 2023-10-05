@@ -1,2 +1,2 @@
 test:
-	~/go/shortenertest -test.v -test.run=^TestIteration1$ -binary-path=cmd/shortener/shortener
+	~/go/shortenertest -test.v -test.run=^TestIteration2$ -source-path=cmd/shortener/shortener
