@@ -36,8 +36,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	str := base64.StdEncoding.EncodeToString([]byte(uri.String()))
-	fmt.Println(str)
+	base64.StdEncoding.EncodeToString([]byte(uri.String()))
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write(encodeURL(uri.String(), r))
@@ -50,26 +49,26 @@ func decodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
+
 	result, err := decodeURL(params["id"])
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Location", string(result))
+	w.Header().Set("Location", result)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-
 }
 
-func decodeURL(code string) ([]byte, error) {
+func decodeURL(code string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(code)
 
 	if err != nil {
-		return data, fmt.Errorf("wrong decode")
+		return "error", fmt.Errorf("wrong decode")
 	}
 
-	return data, nil
+	return string(data), nil
 }
 
 func encodeURL(url string, r *http.Request) []byte {
