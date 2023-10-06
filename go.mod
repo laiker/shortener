@@ -3,7 +3,7 @@ module github.com/laiker/shortener
 go 1.21.1
 
 require (
-	github.com/gorilla/mux v1.8.0
+	github.com/go-chi/chi v1.5.5
 	github.com/stretchr/testify v1.8.4
 )
 

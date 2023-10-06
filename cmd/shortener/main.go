@@ -3,17 +3,17 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"io"
 	"net/http"
 	"net/url"
 )
 
 func main() {
-	mux := mux.NewRouter()
-	mux.HandleFunc("/{id}", decodeHandler)
-	mux.HandleFunc("/", encodeHandler)
-	http.ListenAndServe(`:8080`, mux)
+	r := chi.NewRouter()
+	r.HandleFunc("/{id}", decodeHandler)
+	r.HandleFunc("/", encodeHandler)
+	http.ListenAndServe(`:8080`, r)
 }
 
 func encodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,9 +48,9 @@ func decodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := mux.Vars(r)
+	id := chi.URLParam(r, "id")
 
-	result, err := decodeURL(params["id"])
+	result, err := decodeURL(id)
 
 	if err != nil {
 		http.Error(w, "Error: "+err.Error(), http.StatusBadRequest)
