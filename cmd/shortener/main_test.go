@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -65,7 +65,7 @@ func Test_decodeHandler(t *testing.T) {
 		},
 	}
 
-	router := mux.NewRouter()
+	router := chi.NewRouter()
 	router.HandleFunc("/{id}", decodeHandler)
 
 	for _, tt := range tests {
