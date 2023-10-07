@@ -19,6 +19,7 @@ func run() {
 	r := chi.NewRouter()
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
+	fmt.Println("Server runs at: " + config.FlagRunAddr)
 	http.ListenAndServe(config.FlagRunAddr, r)
 }
 
