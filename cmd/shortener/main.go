@@ -4,16 +4,22 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/laiker/shortener/cmd/config"
 	"io"
 	"net/http"
 	"net/url"
 )
 
 func main() {
+	config.ParseFlags()
+	run()
+}
+
+func run() {
 	r := chi.NewRouter()
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
-	http.ListenAndServe(`:8080`, r)
+	http.ListenAndServe(config.FlagRunAddr, r)
 }
 
 func encodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +45,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	base64.StdEncoding.EncodeToString([]byte(uri.String()))
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write(encodeURL(uri.String(), r))
+	w.Write(encodeURL(uri.String(), config.FlagOutputUrl))
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,14 +77,7 @@ func decodeURL(code string) (string, error) {
 	return string(data), nil
 }
 
-func encodeURL(url string, r *http.Request) []byte {
+func encodeURL(url string, host string) []byte {
 	encodeStr := base64.StdEncoding.EncodeToString([]byte(url))
-	return []byte(fmt.Sprintf("%v://%v/%v", getScheme(r), r.Host, encodeStr))
-}
-
-func getScheme(r *http.Request) string {
-	if r.TLS == nil {
-		return "http"
-	}
-	return "https"
+	return []byte(fmt.Sprintf("%v/%v", host, encodeStr))
 }
