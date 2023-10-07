@@ -105,7 +105,7 @@ func Test_encodeHandler(t *testing.T) {
 				http.MethodPost,
 				http.StatusCreated,
 				"https://asd.ru",
-				"http://example.com/aHR0cHM6Ly9hc2QucnU=",
+				"/aHR0cHM6Ly9hc2QucnU=",
 			},
 		},
 		{
