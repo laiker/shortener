@@ -46,7 +46,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	base64.StdEncoding.EncodeToString([]byte(uri.String()))
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write(encodeURL(uri.String(), config.FlagOutputUrl))
+	w.Write(encodeURL(uri.String(), config.FlagOutputURL))
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {
