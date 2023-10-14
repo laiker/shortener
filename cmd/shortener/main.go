@@ -14,17 +14,15 @@ import (
 
 func main() {
 	config.ParseFlags()
-	err := logger.Initialize(config.FlagLogLevel)
-
-	if err != nil {
-		fmt.Errorf("logger error %s", err)
-	}
-
 	run()
 }
 
 func run() {
 	r := chi.NewRouter()
+
+	err := logger.Initialize(config.FlagLogLevel), if err != nil {
+		fmt.Println(err)
+	}
 
 	r.Use(logger.RequestLogger)
 	r.HandleFunc("/{id}", decodeHandler)
