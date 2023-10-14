@@ -20,7 +20,8 @@ func main() {
 func run() {
 	r := chi.NewRouter()
 
-	err := logger.Initialize(config.FlagLogLevel), if err != nil {
+	err := logger.Initialize(config.FlagLogLevel)
+	if err != nil {
 		fmt.Println(err)
 	}
 
