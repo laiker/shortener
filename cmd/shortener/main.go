@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
+	logger "github.com/laiker/shortener/internal"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,14 +14,23 @@ import (
 
 func main() {
 	config.ParseFlags()
+	err := logger.Initialize(config.FlagLogLevel)
+
+	if err != nil {
+		fmt.Errorf("logger error %s", err)
+	}
+
 	run()
 }
 
 func run() {
 	r := chi.NewRouter()
+
+	r.Use(logger.RequestLogger)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
-	fmt.Println("Server runs at: " + config.FlagRunAddr)
+
+	logger.Log.Info("Server runs at: ", zap.String("address", config.FlagRunAddr))
 	http.ListenAndServe(config.FlagRunAddr, r)
 }
 
@@ -45,8 +56,10 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	base64.StdEncoding.EncodeToString([]byte(uri.String()))
 
+	response := encodeURL(uri.String(), config.FlagOutputURL)
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write(encodeURL(uri.String(), config.FlagOutputURL))
+	w.Write(response)
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {

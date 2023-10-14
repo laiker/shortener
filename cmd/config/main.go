@@ -7,10 +7,12 @@ import (
 
 var FlagRunAddr string
 var FlagOutputURL string
+var FlagLogLevel string
 
 func ParseFlags() {
 	flag.StringVar(&FlagRunAddr, "a", "localhost:8080", "Initial webserver URL")
 	flag.StringVar(&FlagOutputURL, "b", "http://localhost:8080", "Output short url host")
+	flag.StringVar(&FlagLogLevel, "l", "info", "log level")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
