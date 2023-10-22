@@ -56,7 +56,6 @@ func gzipMiddleware(h http.Handler) http.Handler {
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		if sendsGzip && supportContent {
-			fmt.Println("test")
 			cr, err := compresser.NewCompressReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -90,7 +89,7 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	uri, err := url.ParseRequestURI(urlType.URL)
 
-	if err != nil {
+	if err != nil && len(urlType.URL) != 0 {
 		http.Error(w, "Invalid Url", http.StatusBadRequest)
 		return
 	}
@@ -109,7 +108,10 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(response)
+
+	if len(urlType.URL) != 0 {
+		w.Write(response)
+	}
 }
 
 func encodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,18 +128,26 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uri, err := url.ParseRequestURI(string(reqURL))
-	if err != nil {
-		http.Error(w, "Invalid Url", http.StatusBadRequest)
-		return
+	uriString := ""
+
+	if len(reqURL) > 0 {
+		uri, err := url.ParseRequestURI(string(reqURL))
+
+		if err != nil && len(reqURL) != 0 {
+			http.Error(w, "Invalid Url", http.StatusBadRequest)
+			return
+		}
+
+		uriString = uri.String()
 	}
 
-	base64.StdEncoding.EncodeToString([]byte(uri.String()))
-
-	response := encodeURL(uri.String())
+	response := encodeURL(uriString)
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write(response)
+
+	if len(reqURL) != 0 {
+		w.Write(response)
+	}
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {
