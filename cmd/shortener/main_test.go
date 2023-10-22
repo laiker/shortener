@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-chi/chi"
+	"github.com/laiker/shortener/cmd/config"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -11,6 +12,9 @@ import (
 )
 
 func Test_decodeHandler(t *testing.T) {
+
+	config.ParseFlags()
+
 	type want struct {
 		query    string
 		method   string
@@ -86,6 +90,8 @@ func Test_decodeHandler(t *testing.T) {
 }
 
 func Test_encodeHandler(t *testing.T) {
+	config.ParseFlags()
+
 	type want struct {
 		query    string
 		method   string
@@ -105,7 +111,7 @@ func Test_encodeHandler(t *testing.T) {
 				http.MethodPost,
 				http.StatusCreated,
 				"https://asd.ru",
-				"/aHR0cHM6Ly9hc2QucnU=",
+				"http://localhost:8080/aHR0cHM6Ly9hc2QucnU=",
 			},
 		},
 		{
@@ -136,6 +142,71 @@ func Test_encodeHandler(t *testing.T) {
 			request := httptest.NewRequest(tt.want.method, tt.want.query, strings.NewReader(tt.want.body))
 			w := httptest.NewRecorder()
 			encodeHandler(w, request)
+			result := w.Result()
+
+			defer result.Body.Close()
+			respBody, _ := io.ReadAll(result.Body)
+
+			assert.Equal(t, tt.want.response, string(respBody))
+			assert.Equal(t, tt.want.code, result.StatusCode)
+		})
+	}
+}
+
+func Test_shortenHandler(t *testing.T) {
+
+	config.ParseFlags()
+
+	type want struct {
+		query    string
+		method   string
+		code     int
+		body     string
+		response string
+	}
+
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			"Success Test",
+			want{
+				"/",
+				http.MethodPost,
+				http.StatusCreated,
+				"{\"url\": \"https://yandex.ru\"}",
+				"{\"result\":\"http://localhost:8080/aHR0cHM6Ly95YW5kZXgucnU=\"}",
+			},
+		},
+		{
+			"Wrong Request",
+			want{
+				"/",
+				http.MethodGet,
+				http.StatusMethodNotAllowed,
+				"",
+				"",
+			},
+		},
+		{
+			"Wrong Url",
+			want{
+				"/",
+				http.MethodPost,
+				http.StatusBadRequest,
+				"{\"url\": \"asd\"}",
+				"Invalid Url\n",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			request := httptest.NewRequest(tt.want.method, tt.want.query, strings.NewReader(tt.want.body))
+			w := httptest.NewRecorder()
+			shortenHandler(w, request)
 			result := w.Result()
 
 			defer result.Body.Close()

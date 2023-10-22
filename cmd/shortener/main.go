@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
+	"github.com/laiker/shortener/internal/json"
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -28,9 +30,50 @@ func run() {
 	r.Use(logger.RequestLogger)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
+	r.HandleFunc("/api/shorten", shortenHandler)
 
 	logger.Log.Info("Server runs at: ", zap.String("address", config.FlagRunAddr))
 	http.ListenAndServe(config.FlagRunAddr, r)
+}
+
+func shortenHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+	}
+
+	urlType := &json.Url{}
+	easyjson.Unmarshal(body, urlType)
+
+	uri, err := url.ParseRequestURI(urlType.Url)
+
+	if err != nil {
+		http.Error(w, "Invalid Url", http.StatusBadRequest)
+		return
+	}
+
+	encodedUrl := encodeURL(uri.String())
+
+	result := &json.Result{}
+
+	result.Result = string(encodedUrl)
+
+	response, err := easyjson.Marshal(result)
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write(response)
 }
 
 func encodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +98,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	base64.StdEncoding.EncodeToString([]byte(uri.String()))
 
-	response := encodeURL(uri.String(), config.FlagOutputURL)
+	response := encodeURL(uri.String())
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write(response)
@@ -90,7 +133,7 @@ func decodeURL(code string) (string, error) {
 	return string(data), nil
 }
 
-func encodeURL(url string, host string) []byte {
+func encodeURL(url string) []byte {
 	encodeStr := base64.StdEncoding.EncodeToString([]byte(url))
-	return []byte(fmt.Sprintf("%v/%v", host, encodeStr))
+	return []byte(fmt.Sprintf("%v/%v", config.FlagOutputURL, encodeStr))
 }
