@@ -6,12 +6,14 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
+	compresser "github.com/laiker/shortener/internal/gzip"
 	"github.com/laiker/shortener/internal/json"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func main() {
@@ -27,13 +29,46 @@ func run() {
 		fmt.Println(err)
 	}
 
-	r.Use(logger.RequestLogger)
+	r.Use(logger.RequestLogger, gzipMiddleware)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
 	r.HandleFunc("/api/shorten", shortenHandler)
 
 	logger.Log.Info("Server runs at: ", zap.String("address", config.FlagRunAddr))
 	http.ListenAndServe(config.FlagRunAddr, r)
+}
+
+func gzipMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
+		acceptContent := r.Header.Get("Content-Type")
+		supportContent := strings.Contains(acceptContent, "application/json") || strings.Contains(acceptContent, "plan/text")
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		if supportsGzip && supportContent {
+			cw := compresser.NewCompressWriter(w)
+			ow = cw
+			defer cw.Close()
+		}
+
+		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
+		contentEncoding := r.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip && supportContent {
+			fmt.Println("test")
+			cr, err := compresser.NewCompressReader(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			r.Body = cr
+			defer cr.Close()
+		}
+
+		h.ServeHTTP(ow, r)
+	})
 }
 
 func shortenHandler(w http.ResponseWriter, r *http.Request) {
