@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(in *jlexer.Lexer, out *Url) {
+func easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(in *jlexer.Lexer, out *URL) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -37,7 +37,7 @@ func easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(in *jlexer.Lexer
 		}
 		switch key {
 		case "url":
-			out.Url = string(in.String())
+			out.URL = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -48,38 +48,38 @@ func easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(in *jlexer.Lexer
 		in.Consumed()
 	}
 }
-func easyjsonCcc68259EncodeGithubComLaikerShortenerInternalJson(out *jwriter.Writer, in Url) {
+func easyjsonCcc68259EncodeGithubComLaikerShortenerInternalJson(out *jwriter.Writer, in URL) {
 	out.RawByte('{')
 	first := true
 	_ = first
 	{
 		const prefix string = ",\"url\":"
 		out.RawString(prefix[1:])
-		out.String(string(in.Url))
+		out.String(string(in.URL))
 	}
 	out.RawByte('}')
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v Url) MarshalJSON() ([]byte, error) {
+func (v URL) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonCcc68259EncodeGithubComLaikerShortenerInternalJson(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v Url) MarshalEasyJSON(w *jwriter.Writer) {
+func (v URL) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonCcc68259EncodeGithubComLaikerShortenerInternalJson(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *Url) UnmarshalJSON(data []byte) error {
+func (v *URL) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *Url) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *URL) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonCcc68259DecodeGithubComLaikerShortenerInternalJson(l, v)
 }

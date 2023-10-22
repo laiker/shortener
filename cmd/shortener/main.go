@@ -50,10 +50,10 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 	}
 
-	urlType := &json.Url{}
+	urlType := &json.URL{}
 	easyjson.Unmarshal(body, urlType)
 
-	uri, err := url.ParseRequestURI(urlType.Url)
+	uri, err := url.ParseRequestURI(urlType.URL)
 
 	if err != nil {
 		http.Error(w, "Invalid Url", http.StatusBadRequest)
