@@ -60,11 +60,11 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encodedUrl := encodeURL(uri.String())
+	encodedURL := encodeURL(uri.String())
 
 	result := &json.Result{}
 
-	result.Result = string(encodedUrl)
+	result.Result = string(encodedURL)
 
 	response, err := easyjson.Marshal(result)
 
