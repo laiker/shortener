@@ -7,13 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
 
-func Test_decodeHandler(t *testing.T) {
-
+func TestMain(m *testing.M) {
 	config.ParseFlags()
+	os.Exit(m.Run())
+}
+
+func Test_decodeHandler(t *testing.T) {
 
 	type want struct {
 		query    string
@@ -90,7 +94,6 @@ func Test_decodeHandler(t *testing.T) {
 }
 
 func Test_encodeHandler(t *testing.T) {
-	config.ParseFlags()
 
 	type want struct {
 		query    string
@@ -154,8 +157,6 @@ func Test_encodeHandler(t *testing.T) {
 }
 
 func Test_shortenHandler(t *testing.T) {
-
-	config.ParseFlags()
 
 	type want struct {
 		query    string
