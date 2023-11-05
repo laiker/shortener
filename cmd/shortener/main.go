@@ -68,7 +68,6 @@ func gzipMiddleware(h http.Handler) http.Handler {
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 
 		if sendsGzip && supportContent {
-			logger.Log.Info("Decode ")
 			cr, err := compresser.NewCompressReader(r.Body)
 
 			if err != nil {
@@ -136,20 +135,17 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	reqURL, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
-	logger.Log.Info(r.Header.Get("Content-Type"))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	bodyUrl := string(reqURL)
 
-	_, err = url.Parse(bodyUrl)
+	_, err = url.ParseRequestURI(bodyUrl)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		http.Error(w, bodyUrl, http.StatusBadRequest)
+		http.Error(w, "Invalid Url", http.StatusBadRequest)
 		return
 	}
 
