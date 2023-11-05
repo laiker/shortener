@@ -1,6 +1,7 @@
 package compresser
 
 import (
+	"bytes"
 	"compress/gzip"
 	"io"
 	"net/http"
@@ -43,7 +44,13 @@ type CompressReader struct {
 }
 
 func NewCompressReader(r io.ReadCloser) (*CompressReader, error) {
-	zr, err := gzip.NewReader(r)
+	body, err := io.ReadAll(r)
+
+	if err != nil {
+		return nil, err
+	}
+
+	zr, err := gzip.NewReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

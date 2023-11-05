@@ -30,9 +30,9 @@ func run() {
 	}
 
 	r.Use(logger.RequestLogger, gzipMiddleware)
+	r.HandleFunc("/api/shorten", shortenHandler)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
-	r.HandleFunc("/api/shorten", shortenHandler)
 
 	logger.Log.Info("Server runs at: ", zap.String("address", config.FlagRunAddr))
 	http.ListenAndServe(config.FlagRunAddr, r)
@@ -43,9 +43,20 @@ func gzipMiddleware(h http.Handler) http.Handler {
 		ow := w
 
 		acceptContent := r.Header.Get("Content-Type")
-		supportContent := strings.Contains(acceptContent, "application/json") || strings.Contains(acceptContent, "plan/text")
+
+		typesToCheck := []string{"application/json", "text/html", "text/plain", "application/x-gzip"}
+
+		supportContent := false
+		for _, contentType := range typesToCheck {
+			if strings.Contains(acceptContent, contentType) {
+				supportContent = true
+				break
+			}
+		}
+
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+
 		if supportsGzip && supportContent {
 			cw := compresser.NewCompressWriter(w)
 			ow = cw
@@ -55,10 +66,13 @@ func gzipMiddleware(h http.Handler) http.Handler {
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
+
 		if sendsGzip && supportContent {
+			logger.Log.Info("Decode ")
 			cr, err := compresser.NewCompressReader(r.Body)
+
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
@@ -89,7 +103,7 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	uri, err := url.ParseRequestURI(urlType.URL)
 
-	if err != nil && len(urlType.URL) != 0 {
+	if err != nil {
 		http.Error(w, "Invalid Url", http.StatusBadRequest)
 		return
 	}
@@ -109,9 +123,8 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if len(urlType.URL) != 0 {
-		w.Write(response)
-	}
+	w.Write(response)
+
 }
 
 func encodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -123,31 +136,28 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	reqURL, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
+	logger.Log.Info(r.Header.Get("Content-Type"))
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	uriString := ""
+	bodyUrl := string(reqURL)
 
-	if len(reqURL) > 0 {
-		uri, err := url.ParseRequestURI(string(reqURL))
+	_, err = url.Parse(bodyUrl)
 
-		if err != nil && len(reqURL) != 0 {
-			http.Error(w, "Invalid Url", http.StatusBadRequest)
-			return
-		}
-
-		uriString = uri.String()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, bodyUrl, http.StatusBadRequest)
+		return
 	}
 
-	response := encodeURL(uriString)
+	response := encodeURL(bodyUrl)
 
 	w.WriteHeader(http.StatusCreated)
+	w.Write(response)
 
-	if len(reqURL) != 0 {
-		w.Write(response)
-	}
 }
 
 func decodeHandler(w http.ResponseWriter, r *http.Request) {
