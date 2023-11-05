@@ -140,16 +140,16 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyUrl := string(reqURL)
+	bodyURL := string(reqURL)
 
-	_, err = url.ParseRequestURI(bodyUrl)
+	_, err = url.ParseRequestURI(bodyURL)
 
 	if err != nil {
 		http.Error(w, "Invalid Url", http.StatusBadRequest)
 		return
 	}
 
-	response := encodeURL(bodyUrl)
+	response := encodeURL(bodyURL)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write(response)
