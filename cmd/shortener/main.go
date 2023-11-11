@@ -32,7 +32,7 @@ func run() {
 		fmt.Println(err)
 	}
 
-	r.Use(logger.RequestLogger)
+	r.Use(logger.RequestLogger, gzipMiddleware)
 	r.HandleFunc("/api/shorten", shortenHandler)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
@@ -161,12 +161,12 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	response := encodeURL(bodyURL)
 
-	err = SaveURL(string(response), bodyURL)
+	/*err = SaveURL(string(response), bodyURL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
+	}*/
 
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
