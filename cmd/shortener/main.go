@@ -152,7 +152,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	bodyURL := string(reqURL)
 
-	_, err = url.ParseRequestURI(bodyURL)
+	_, err = url.Parse(bodyURL)
 
 	if err != nil {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
@@ -161,12 +161,14 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	response := encodeURL(bodyURL)
 
-	/*err = SaveURL(string(response), bodyURL)
+	logger.Log.Info(string(response) + " " + bodyURL)
+
+	err = SaveURL(string(response), bodyURL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}*/
+	}
 
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
@@ -198,7 +200,7 @@ func decodeURL(code string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(code)
 
 	if err != nil {
-		return "error", fmt.Errorf("wrong decode")
+		return "", fmt.Errorf("wrong decode")
 	}
 
 	return string(data), nil
