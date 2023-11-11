@@ -170,11 +170,6 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
 
