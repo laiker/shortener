@@ -152,7 +152,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	bodyURL := string(reqURL)
 
-	_, err = url.Parse(bodyURL)
+	_, err = url.ParseRequestURI(bodyURL)
 
 	if err != nil {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
