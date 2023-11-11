@@ -32,7 +32,7 @@ func run() {
 		fmt.Println(err)
 	}
 
-	r.Use(logger.RequestLogger, gzipMiddleware)
+	r.Use(logger.RequestLogger)
 	r.HandleFunc("/api/shorten", shortenHandler)
 	r.HandleFunc("/{id}", decodeHandler)
 	r.HandleFunc("/", encodeHandler)
