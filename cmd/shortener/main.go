@@ -211,7 +211,7 @@ func encodeURL(url string) []byte {
 }
 
 func SaveURL(short, original string) error {
-
+	logger.Log.Info(config.StoragePath)
 	if config.StoragePath == "" {
 		return nil
 	}
@@ -240,16 +240,21 @@ func SaveURL(short, original string) error {
 	}
 
 	lastRow := &json.DBRow{}
-	if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
-		return err
+	lastID := 1
+	if lastLine != "" {
+		if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
+			return err
+		}
+
+		lastID = lastRow.ID + 1
 	}
 
 	row := &json.DBRow{
-		ID:          lastRow.ID + 1,
+		ID:          lastID,
 		OriginalURL: original,
 		ShortURL:    short,
 	}
-
+	logger.Log.Info(fmt.Sprintf("%s", row))
 	err = encoder.Encode(row)
 
 	if err != nil {
