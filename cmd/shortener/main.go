@@ -163,12 +163,12 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Log.Info(string(response) + " " + bodyURL)
 
-	/*err = SaveURL(string(response), bodyURL)
+	err = SaveURL(string(response), bodyURL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}*/
+	}
 
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
@@ -211,6 +211,11 @@ func encodeURL(url string) []byte {
 }
 
 func SaveURL(short, original string) error {
+
+	if config.StoragePath == "" {
+		return nil
+	}
+
 	file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
 
 	if err != nil {
