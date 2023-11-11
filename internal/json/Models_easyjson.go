@@ -149,7 +149,7 @@ func (v *Result) UnmarshalJSON(data []byte) error {
 func (v *Result) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson1(l, v)
 }
-func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(in *jlexer.Lexer, out *DbRow) {
+func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(in *jlexer.Lexer, out *DBRow) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -169,7 +169,7 @@ func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(in *jlexer.Lexe
 		}
 		switch key {
 		case "uuid":
-			out.Id = int(in.Int())
+			out.ID = int(in.Int())
 		case "short_url":
 			out.ShortURL = string(in.String())
 		case "original_url":
@@ -184,14 +184,14 @@ func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(in *jlexer.Lexe
 		in.Consumed()
 	}
 }
-func easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(out *jwriter.Writer, in DbRow) {
+func easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(out *jwriter.Writer, in DBRow) {
 	out.RawByte('{')
 	first := true
 	_ = first
 	{
 		const prefix string = ",\"uuid\":"
 		out.RawString(prefix[1:])
-		out.Int(int(in.Id))
+		out.Int(int(in.ID))
 	}
 	{
 		const prefix string = ",\"short_url\":"
@@ -207,25 +207,25 @@ func easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(out *jwriter.Wr
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v DbRow) MarshalJSON() ([]byte, error) {
+func (v DBRow) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v DbRow) MarshalEasyJSON(w *jwriter.Writer) {
+func (v DBRow) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *DbRow) UnmarshalJSON(data []byte) error {
+func (v *DBRow) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *DbRow) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *DBRow) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(l, v)
 }

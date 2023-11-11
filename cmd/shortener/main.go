@@ -106,14 +106,19 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	uri, err := url.ParseRequestURI(urlType.URL)
 
 	if err != nil {
-		http.Error(w, "Invalid Url", http.StatusBadRequest)
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
 		return
 	}
 
-	bodyUrl := uri.String()
+	bodyURL := uri.String()
 
-	encodedURL := encodeURL(bodyUrl)
-	err = SaveURL(string(encodedURL), bodyUrl)
+	encodedURL := encodeURL(bodyURL)
+	err = SaveURL(string(encodedURL), bodyURL)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	result := &json.Result{}
 	result.Result = fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
@@ -150,7 +155,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = url.ParseRequestURI(bodyURL)
 
 	if err != nil {
-		http.Error(w, "Invalid Url", http.StatusBadRequest)
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
 		return
 	}
 
@@ -158,7 +163,12 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = SaveURL(string(response), bodyURL)
 
-	shortUrl := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -166,7 +176,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortUrl))
+	w.Write([]byte(shortURL))
 
 }
 
@@ -227,13 +237,13 @@ func SaveURL(short, original string) error {
 		}
 	}
 
-	lastRow := &json.DbRow{}
+	lastRow := &json.DBRow{}
 	if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
 		return err
 	}
 
-	row := &json.DbRow{
-		Id:          lastRow.Id + 1,
+	row := &json.DBRow{
+		ID:          lastRow.ID + 1,
 		OriginalURL: original,
 		ShortURL:    short,
 	}
