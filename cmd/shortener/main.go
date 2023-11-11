@@ -211,7 +211,7 @@ func encodeURL(url string) []byte {
 }
 
 func SaveURL(short, original string) error {
-	logger.Log.Info(config.StoragePath)
+
 	if config.StoragePath == "" {
 		return nil
 	}
@@ -254,7 +254,7 @@ func SaveURL(short, original string) error {
 		OriginalURL: original,
 		ShortURL:    short,
 	}
-	logger.Log.Info(fmt.Sprintf("%s", row))
+
 	err = encoder.Encode(row)
 
 	if err != nil {
