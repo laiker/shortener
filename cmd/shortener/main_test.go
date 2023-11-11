@@ -134,7 +134,7 @@ func Test_encodeHandler(t *testing.T) {
 				http.MethodPost,
 				http.StatusBadRequest,
 				"xcvcxv",
-				"Invalid Url\n",
+				"Invalid URL\n",
 			},
 		},
 	}
@@ -197,7 +197,7 @@ func Test_shortenHandler(t *testing.T) {
 				http.MethodPost,
 				http.StatusBadRequest,
 				"{\"url\": \"asd\"}",
-				"Invalid Url\n",
+				"Invalid URL\n",
 			},
 		},
 	}
