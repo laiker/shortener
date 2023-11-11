@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"encoding/base64"
+	json2 "encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
@@ -13,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -107,11 +110,13 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encodedURL := encodeURL(uri.String())
+	bodyUrl := uri.String()
+
+	encodedURL := encodeURL(bodyUrl)
+	err = SaveURL(string(encodedURL), bodyUrl)
 
 	result := &json.Result{}
-
-	result.Result = string(encodedURL)
+	result.Result = fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
 
 	response, err := easyjson.Marshal(result)
 
@@ -151,8 +156,17 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	response := encodeURL(bodyURL)
 
+	err = SaveURL(string(response), bodyURL)
+
+	shortUrl := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write(response)
+	w.Write([]byte(shortUrl))
 
 }
 
@@ -186,6 +200,49 @@ func decodeURL(code string) (string, error) {
 }
 
 func encodeURL(url string) []byte {
-	encodeStr := base64.StdEncoding.EncodeToString([]byte(url))
-	return []byte(fmt.Sprintf("%v/%v", config.FlagOutputURL, encodeStr))
+	return []byte(base64.StdEncoding.EncodeToString([]byte(url)))
+}
+
+func SaveURL(short, original string) error {
+	file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
+
+	if err != nil {
+		return err
+	}
+
+	encoder := json2.NewEncoder(file)
+
+	reader := bufio.NewReader(file)
+
+	var lastLine string
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break // Достигнут конец файла
+		}
+		lastLine = line
+		if strings.TrimSpace(line) == "}" {
+			break
+		}
+	}
+
+	lastRow := &json.DbRow{}
+	if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
+		return err
+	}
+
+	row := &json.DbRow{
+		Id:          lastRow.Id + 1,
+		OriginalURL: original,
+		ShortURL:    short,
+	}
+
+	err = encoder.Encode(row)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
