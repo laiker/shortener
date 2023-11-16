@@ -38,10 +38,7 @@ func run() {
 		fmt.Println(err)
 	}
 
-	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		config.DatabaseDsn, `admin`, `123456`, `shortener`, `5432`)
-
-	db, err = sql.Open("pgx", ps)
+	db, err = sql.Open("pgx", config.DatabaseDsn)
 
 	if err != nil {
 		fmt.Println(err)
