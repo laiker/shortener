@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"encoding/base64"
 	json2 "encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
 	compresser "github.com/laiker/shortener/internal/gzip"
@@ -17,7 +20,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
+
+var db *sql.DB
 
 func main() {
 	config.ParseFlags()
@@ -32,13 +38,43 @@ func run() {
 		fmt.Println(err)
 	}
 
+	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		config.DatabaseDsn, `admin`, `123456`, `shortener`, `5432`)
+
+	db, err = sql.Open("pgx", ps)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer db.Close()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	r.Use(logger.RequestLogger, gzipMiddleware)
 	r.HandleFunc("/api/shorten", shortenHandler)
 	r.HandleFunc("/{id}", decodeHandler)
+	r.HandleFunc("/ping", pingHandler)
 	r.HandleFunc("/", encodeHandler)
 
 	logger.Log.Info("Server runs at: ", zap.String("address", config.FlagRunAddr))
 	http.ListenAndServe(config.FlagRunAddr, r)
+}
+
+func pingHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("pong"))
 }
 
 func gzipMiddleware(h http.Handler) http.Handler {
