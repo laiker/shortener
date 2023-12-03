@@ -16,6 +16,7 @@ import (
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -245,53 +246,72 @@ func encodeURL(url string) []byte {
 
 func SaveURL(short, original string) error {
 
-	if config.StoragePath == "" {
-		return nil
-	}
+	if config.DatabaseDsn != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
 
-	file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
+		result, errexec := db.ExecContext(ctx, "INSERT INTO urls (original_url, short_url) VALUES ($1, $2)", original, short)
 
-	if err != nil {
-		return err
-	}
+		if errexec != nil {
+			return errexec
+		}
 
-	encoder := json2.NewEncoder(file)
+		rows, err := result.RowsAffected()
 
-	reader := bufio.NewReader(file)
-
-	var lastLine string
-
-	for {
-		line, err := reader.ReadString('\n')
 		if err != nil {
-			break // Достигнут конец файла
+			log.Fatal(err)
 		}
-		lastLine = line
-		if strings.TrimSpace(line) == "}" {
-			break
+
+		if rows != 1 {
+			log.Fatalf("expected to affect 1 row, affected %d", rows)
 		}
 	}
 
-	lastRow := &json.DBRow{}
-	lastID := 1
-	if lastLine != "" {
-		if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
+	if config.StoragePath != "" {
+		file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
+
+		if err != nil {
 			return err
 		}
 
-		lastID = lastRow.ID + 1
-	}
+		encoder := json2.NewEncoder(file)
 
-	row := &json.DBRow{
-		ID:          lastID,
-		OriginalURL: original,
-		ShortURL:    short,
-	}
+		reader := bufio.NewReader(file)
 
-	err = encoder.Encode(row)
+		var lastLine string
 
-	if err != nil {
-		return err
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				break // Достигнут конец файла
+			}
+			lastLine = line
+			if strings.TrimSpace(line) == "}" {
+				break
+			}
+		}
+
+		lastRow := &json.DBRow{}
+		lastID := 1
+		if lastLine != "" {
+			if err := json2.Unmarshal([]byte(lastLine), &lastRow); err != nil {
+				return err
+			}
+
+			lastID = lastRow.ID + 1
+		}
+
+		row := &json.DBRow{
+			ID:          lastID,
+			OriginalURL: original,
+			ShortURL:    short,
+		}
+
+		err = encoder.Encode(row)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -31,7 +31,7 @@ func ParseFlags() {
 		StoragePath = envStoragePath
 	}
 
-	if envDatabaseDsn := os.Getenv("FILE_STORAGE_PATH"); envDatabaseDsn != "" {
+	if envDatabaseDsn := os.Getenv("DATABASE_DSN"); envDatabaseDsn != "" {
 		DatabaseDsn = envDatabaseDsn
 	}
 }
