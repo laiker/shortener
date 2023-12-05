@@ -145,6 +145,7 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	bodyURL := uri.String()
 
 	encodedURL := encodeURL(bodyURL)
+
 	err = SaveURL(string(encodedURL), bodyURL)
 
 	if err != nil {
@@ -203,7 +204,7 @@ func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
-
+	logger.Log.Info(config.FlagOutputURL)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
 
@@ -245,6 +246,7 @@ func encodeURL(url string) []byte {
 func SaveURL(short, original string) error {
 
 	if config.DatabaseDsn != "" {
+		logger.Log.Info("DATABASE")
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
@@ -266,6 +268,7 @@ func SaveURL(short, original string) error {
 	}
 
 	if config.StoragePath != "" {
+
 		file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
 
 		if err != nil {

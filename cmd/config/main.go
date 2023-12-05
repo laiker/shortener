@@ -16,7 +16,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagOutputURL, "b", "http://localhost:8080", "Output short url host")
 	flag.StringVar(&FlagLogLevel, "l", "info", "log level")
 	flag.StringVar(&StoragePath, "file-storage-path", "/tmp/V23vlAC", "File urls storage path")
-	flag.StringVar(&DatabaseDsn, "d", "localhost", "Database url")
+	flag.StringVar(&DatabaseDsn, "d", "", "Database url")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
