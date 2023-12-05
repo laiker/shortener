@@ -39,16 +39,14 @@ func run() {
 		fmt.Println(err)
 	}
 
-	db, err = sql.Open("pgx", config.DatabaseDsn)
+	if config.DatabaseDsn != "" {
+		db, err = sql.Open("pgx", config.DatabaseDsn)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+		if err != nil {
+			fmt.Println(err)
+		}
 
-	defer db.Close()
-
-	if err != nil {
-		fmt.Println(err)
+		defer db.Close()
 	}
 
 	r.Use(logger.RequestLogger, gzipMiddleware)
