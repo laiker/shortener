@@ -3,7 +3,9 @@ package pg
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/laiker/shortener/internal/json"
 	"time"
 )
 
@@ -67,4 +69,36 @@ func (s Store) SaveUrl(ctx context.Context, original string, short string) error
 	}
 
 	return nil
+}
+
+func (s Store) GetUrl(ctx context.Context, short string) (json.DBRow, error) {
+
+	URLRow := json.DBRow{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	row, err := s.conn.QueryContext(ctx, "SELECT id, original_url, short_url FROM urls WHERE short_url = $1", short)
+
+	if err != nil {
+		return URLRow, err
+	}
+
+	row.Close()
+
+	if err != nil {
+		return URLRow, err
+	}
+
+	for row.Next() {
+		if err := row.Scan(&URLRow.ID, &URLRow.OriginalURL, &URLRow.ShortURL); err != nil {
+			return URLRow, err
+		}
+	}
+
+	if URLRow.OriginalURL == "" {
+		return URLRow, errors.New("url not found")
+	}
+
+	return URLRow, nil
 }
