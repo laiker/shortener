@@ -36,7 +36,7 @@ func (s Store) Bootstrap(ctx context.Context) error {
 
 	// создаём таблицу пользователей и необходимые индексы
 	tx.ExecContext(ctx, `
-        CREATE TABLE users (
+        CREATE TABLE IF NOT EXISTS users (
             id int4 NOT NULL PRIMARY KEY,
 			original_url varchar NOT NULL,
 			short_url varchar NOT NULL

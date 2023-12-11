@@ -48,13 +48,10 @@ func run() {
 	if config.DatabaseDsn != "" {
 		logger.Log.Info("Store postgres")
 
-		db, err = sql.Open("pg", config.DatabaseDsn)
+		db, err = sql.Open("pgx", config.DatabaseDsn)
 
 		if err != nil {
-			fmt.Println(err)
-		}
-
-		if err != nil {
+			logger.Log.Info(err.Error())
 			return
 		}
 
@@ -66,6 +63,7 @@ func run() {
 	err = cstore.Bootstrap(ctx)
 
 	if err != nil {
+		logger.Log.Info(err.Error())
 		return
 	}
 
