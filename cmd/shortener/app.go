@@ -224,7 +224,7 @@ func (a *app) SaveURL(short, original string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		err := a.store.SaveUrl(ctx, short, original)
+		err := a.store.SaveURL(ctx, short, original)
 
 		if err != nil {
 			return err

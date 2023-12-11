@@ -22,12 +22,11 @@ func (s Store) PingContext(ctx context.Context) error {
 }
 
 func (s Store) Bootstrap(ctx context.Context) error {
-	data := make(data, 0)
-	s.data = data
+	s.data = make(data, 0)
 	return nil
 }
 
-func (s Store) SaveUrl(ctx context.Context, original, short string) error {
+func (s Store) SaveURL(ctx context.Context, original, short string) error {
 
 	url := json.DBRow{
 		ID:          len(s.data) + 1,
@@ -40,7 +39,7 @@ func (s Store) SaveUrl(ctx context.Context, original, short string) error {
 	return nil
 }
 
-func (s Store) GetUrl(ctx context.Context, short string) (json.DBRow, error) {
+func (s Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 
 	dbRow := s.data[short]
 

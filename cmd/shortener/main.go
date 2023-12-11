@@ -24,7 +24,7 @@ func main() {
 
 func run() {
 	var db *sql.DB
-	var store store.Store
+	var cstore store.Store
 
 	r := chi.NewRouter()
 
@@ -36,11 +36,11 @@ func run() {
 		fmt.Println(err)
 	}
 
-	store = memory.NewStore()
+	cstore = memory.NewStore()
 	logger.Log.Info("Store Memory")
 
 	if config.StoragePath != "" {
-		store = file.NewStore(config.StoragePath)
+		cstore = file.NewStore(config.StoragePath)
 		logger.Log.Info("Store File")
 
 	}
@@ -58,18 +58,18 @@ func run() {
 			return
 		}
 
-		store = pg.NewStore(db)
+		cstore = pg.NewStore(db)
 
 		defer db.Close()
 	}
 
-	err = store.Bootstrap(ctx)
+	err = cstore.Bootstrap(ctx)
 
 	if err != nil {
 		return
 	}
 
-	appInstance := newApp(store)
+	appInstance := newApp(cstore)
 
 	r.Use(logger.RequestLogger, appInstance.gzipMiddleware)
 	r.HandleFunc("/api/shorten", appInstance.shortenHandler)
