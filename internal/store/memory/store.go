@@ -14,7 +14,9 @@ type Store struct {
 
 // NewStore возвращает новый экземпляр PostgreSQL хранилища
 func NewStore() *Store {
-	return &Store{}
+	return &Store{
+		data: nil,
+	}
 }
 
 func (s Store) PingContext(ctx context.Context) error {

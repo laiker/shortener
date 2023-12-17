@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	logger "github.com/laiker/shortener/internal"
 	"github.com/laiker/shortener/internal/json"
 )
 
@@ -35,33 +36,36 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	defer tx.Rollback()
 
 	// создаём таблицу пользователей и необходимые индексы
-	tx.ExecContext(ctx, `
-        CREATE TABLE IF NOT EXISTS users (
-            id int4 NOT NULL PRIMARY KEY,
-			original_url varchar NOT NULL,
-			short_url varchar NOT NULL
-        )
-    `)
+	_, err = tx.ExecContext(ctx, `
+			CREATE TABLE IF NOT EXISTS urls (
+				id serial PRIMARY KEY,
+				original_url varchar NOT NULL,
+				short_url varchar NOT NULL
+			)
+	    `)
+
+	logger.Log.Info("BOOTSTRAP")
+
+	if err != nil {
+		return err
+	}
 
 	// коммитим транзакцию
 	return tx.Commit()
 }
 
 func (s Store) SaveURL(ctx context.Context, original string, short string) error {
-	result, errexec := s.conn.ExecContext(ctx, "INSERT INTO urls (original_url, short_url) VALUES ($1, $2)", original, short)
 
-	if errexec != nil {
-		return errexec
-	}
-
-	rows, err := result.RowsAffected()
+	stmt, err := s.conn.PrepareContext(ctx, "INSERT INTO urls(original_url, short_url) VALUES($1, $2)")
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare SQL statement: %v", err)
 	}
+	defer stmt.Close()
 
-	if rows != 1 {
-		return fmt.Errorf("expected to affect 1 row, affected %d", rows)
+	_, err = stmt.ExecContext(ctx, original, short)
+	if err != nil {
+		return fmt.Errorf("failed to execute SQL statement: %v", err)
 	}
 
 	return nil

@@ -19,6 +19,7 @@ type Store struct {
 func NewStore(filename string) *Store {
 	return &Store{
 		filename: filename,
+		file:     nil,
 	}
 }
 

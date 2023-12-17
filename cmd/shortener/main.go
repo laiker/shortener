@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-chi/chi"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
 	store "github.com/laiker/shortener/internal/store"
 	"github.com/laiker/shortener/internal/store/file"
 	"github.com/laiker/shortener/internal/store/memory"
 	"github.com/laiker/shortener/internal/store/pg"
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -46,9 +46,10 @@ func run() {
 	}
 
 	if config.DatabaseDsn != "" {
+		logger.Log.Info("DSN " + config.DatabaseDsn)
 		logger.Log.Info("Store postgres")
 
-		db, err = sql.Open("pgx", config.DatabaseDsn)
+		db, err = sql.Open("postgres", config.DatabaseDsn)
 
 		if err != nil {
 			logger.Log.Info(err.Error())

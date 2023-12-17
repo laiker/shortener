@@ -94,6 +94,7 @@ func (a *app) gzipMiddleware(h http.Handler) http.Handler {
 }
 
 func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info("shortenHandler")
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -145,6 +146,8 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info("encodeHandler")
+
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -186,6 +189,8 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) decodeHandler(w http.ResponseWriter, r *http.Request) {
+
+	logger.Log.Info("decodeHandler")
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -221,6 +226,7 @@ func (a *app) encodeURL(url string) []byte {
 func (a *app) SaveURL(short, original string) error {
 
 	if config.DatabaseDsn != "" {
+		logger.Log.Info("Try to save url into Database: " + original)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
