@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
+	"github.com/laiker/shortener/internal/store/memory"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -74,7 +75,9 @@ func Test_decodeHandler(t *testing.T) {
 	}
 
 	router := chi.NewRouter()
-	router.HandleFunc("/{id}", decodeHandler)
+	cstore := memory.NewStore()
+	app := newApp(cstore)
+	router.HandleFunc("/{id}", app.decodeHandler)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -139,12 +142,15 @@ func Test_encodeHandler(t *testing.T) {
 		},
 	}
 
+	cstore := memory.NewStore()
+	app := newApp(cstore)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			request := httptest.NewRequest(tt.want.method, tt.want.query, strings.NewReader(tt.want.body))
 			w := httptest.NewRecorder()
-			encodeHandler(w, request)
+			app.encodeHandler(w, request)
 			result := w.Result()
 
 			defer result.Body.Close()
@@ -202,12 +208,15 @@ func Test_shortenHandler(t *testing.T) {
 		},
 	}
 
+	cstore := memory.NewStore()
+	app := newApp(cstore)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			request := httptest.NewRequest(tt.want.method, tt.want.query, strings.NewReader(tt.want.body))
 			w := httptest.NewRecorder()
-			shortenHandler(w, request)
+			app.shortenHandler(w, request)
 			result := w.Result()
 
 			defer result.Body.Close()
