@@ -15,20 +15,20 @@ type Store struct {
 // NewStore возвращает новый экземпляр PostgreSQL хранилища
 func NewStore() *Store {
 	return &Store{
-		data: nil,
+		data: make(data, 0),
 	}
 }
 
-func (s Store) PingContext(ctx context.Context) error {
+func (s *Store) PingContext(ctx context.Context) error {
 	return nil
 }
 
-func (s Store) Bootstrap(ctx context.Context) error {
+func (s *Store) Bootstrap(ctx context.Context) error {
 	s.data = make(data, 0)
 	return nil
 }
 
-func (s Store) SaveURL(ctx context.Context, original, short string) error {
+func (s *Store) SaveURL(ctx context.Context, original, short string) error {
 
 	url := json.DBRow{
 		ID:          len(s.data) + 1,
@@ -41,7 +41,7 @@ func (s Store) SaveURL(ctx context.Context, original, short string) error {
 	return nil
 }
 
-func (s Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
+func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 
 	dbRow := s.data[short]
 

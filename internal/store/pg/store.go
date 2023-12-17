@@ -20,12 +20,12 @@ func NewStore(conn *sql.DB) *Store {
 	return &Store{conn: conn}
 }
 
-func (s Store) PingContext(ctx context.Context) error {
+func (s *Store) PingContext(ctx context.Context) error {
 	return s.conn.PingContext(ctx)
 }
 
 // Bootstrap подготавливает БД к работе, создавая необходимые таблицы и индексы
-func (s Store) Bootstrap(ctx context.Context) error {
+func (s *Store) Bootstrap(ctx context.Context) error {
 	// запускаем транзакцию
 	tx, err := s.conn.BeginTx(ctx, nil)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	return tx.Commit()
 }
 
-func (s Store) SaveURL(ctx context.Context, original string, short string) error {
+func (s *Store) SaveURL(ctx context.Context, original string, short string) error {
 
 	stmt, err := s.conn.PrepareContext(ctx, "INSERT INTO urls(original_url, short_url) VALUES($1, $2)")
 
@@ -71,7 +71,7 @@ func (s Store) SaveURL(ctx context.Context, original string, short string) error
 	return nil
 }
 
-func (s Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
+func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 
 	URLRow := json.DBRow{}
 

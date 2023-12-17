@@ -23,7 +23,7 @@ func NewStore(filename string) *Store {
 	}
 }
 
-func (s Store) PingContext(ctx context.Context) error {
+func (s *Store) PingContext(ctx context.Context) error {
 	_, err := os.Stat(s.filename)
 
 	if os.IsNotExist(err) {
@@ -33,7 +33,7 @@ func (s Store) PingContext(ctx context.Context) error {
 	return nil
 }
 
-func (s Store) Bootstrap(ctx context.Context) error {
+func (s *Store) Bootstrap(ctx context.Context) error {
 	file, err := os.OpenFile(config.StoragePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0775)
 
 	if err != nil {
@@ -45,7 +45,7 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	return nil
 }
 
-func (s Store) SaveURL(ctx context.Context, original, short string) error {
+func (s *Store) SaveURL(ctx context.Context, original, short string) error {
 
 	encoder := json2.NewEncoder(s.file)
 	reader := bufio.NewReader(s.file)
@@ -88,7 +88,7 @@ func (s Store) SaveURL(ctx context.Context, original, short string) error {
 	return nil
 }
 
-func (s Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
+func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 	reader := bufio.NewReader(s.file)
 
 	row := json.DBRow{}
