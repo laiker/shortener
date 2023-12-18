@@ -71,6 +71,29 @@ func (s *Store) SaveURL(ctx context.Context, original string, short string) erro
 	return nil
 }
 
+func (s *Store) SaveBatchURL(ctx context.Context, urls json.BatchURLSlice) error {
+
+	tx, err := s.conn.BeginTx(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	// в случае неуспешного коммита все изменения транзакции будут отменены
+	defer tx.Rollback()
+
+	for i := 0; i < len(urls); i++ {
+
+		err := s.SaveURL(ctx, urls[i].ShortURL, urls[i].OriginalURL)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 
 	URLRow := json.DBRow{}

@@ -71,6 +71,7 @@ func run() {
 	appInstance := newApp(cstore)
 
 	r.Use(logger.RequestLogger, appInstance.gzipMiddleware)
+	r.HandleFunc("/api/shorten/batch", appInstance.shortenBatchHandler)
 	r.HandleFunc("/api/shorten", appInstance.shortenHandler)
 	r.HandleFunc("/{id}", appInstance.decodeHandler)
 	r.HandleFunc("/ping", appInstance.pingHandler)

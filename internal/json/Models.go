@@ -12,7 +12,11 @@ type URL struct {
 
 //easyjson:json
 type DBRow struct {
-	ID          int    `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+	ID            int    `json:"uuid,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
+	ShortURL      string `json:"short_url,omitempty"`
+	OriginalURL   string `json:"original_url,omitempty"`
 }
+
+//easyjson:json
+type BatchURLSlice []DBRow
