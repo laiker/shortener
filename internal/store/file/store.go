@@ -88,6 +88,18 @@ func (s *Store) SaveURL(ctx context.Context, original, short string) error {
 	return nil
 }
 
+func (s *Store) SaveBatchURL(ctx context.Context, urls json.BatchURLSlice) error {
+
+	for i := 0; i < len(urls); i++ {
+		err := s.SaveURL(ctx, urls[i].ShortURL, urls[i].OriginalURL)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 	reader := bufio.NewReader(s.file)
 

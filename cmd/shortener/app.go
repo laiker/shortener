@@ -145,6 +145,85 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info("shortenBatchHandler")
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+	}
+
+	var batchSlice json.BatchURLSlice
+
+	err = easyjson.Unmarshal(body, &batchSlice)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	fmt.Println(batchSlice)
+	result := make(json.BatchURLSlice, 0)
+	saveBatch := make(json.BatchURLSlice, 0)
+
+	for i := 0; i < len(batchSlice); i++ {
+		currentItem := batchSlice[i]
+		uri, err := url.ParseRequestURI(currentItem.OriginalURL)
+
+		if err != nil {
+			http.Error(w, "Invalid URL", http.StatusBadRequest)
+			return
+		}
+
+		bodyURL := uri.String()
+
+		encodedURL := a.encodeURL(bodyURL)
+
+		err = a.SaveURL(string(encodedURL), bodyURL)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		batchSaveUrl := json.DBRow{
+			ShortURL:    currentItem.ShortURL,
+			OriginalURL: currentItem.OriginalURL,
+		}
+
+		batchOutputUrl := json.DBRow{
+			CorrelationID: currentItem.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL),
+		}
+
+		saveBatch = append(saveBatch, batchSaveUrl)
+		result = append(result, batchOutputUrl)
+	}
+
+	err = a.store.SaveBatchURL(context.Background(), saveBatch)
+
+	if err != nil {
+		return
+	}
+
+	response, err := easyjson.Marshal(result)
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	w.Write(response)
+
+}
+
 func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Info("encodeHandler")
 
