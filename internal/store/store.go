@@ -2,8 +2,11 @@ package store
 
 import (
 	"context"
+	"errors"
 	"github.com/laiker/shortener/internal/json"
 )
+
+var ErrUnique = errors.New("original url is already created")
 
 // Store описывает абстрактное хранилище сообщений пользователей
 type Store interface {

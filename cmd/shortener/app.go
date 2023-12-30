@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	json2 "encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
@@ -255,12 +256,19 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = a.SaveURL(string(response), bodyURL)
 
+	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
+
+	if err != nil && !errors.Is(err, store.ErrUnique) {
+		logger.Log.Info("dublicate url")
+		http.Error(w, shortURL, http.StatusConflict)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 	logger.Log.Info(config.FlagOutputURL)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))

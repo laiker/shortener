@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
 	store "github.com/laiker/shortener/internal/store"
@@ -23,7 +23,7 @@ func main() {
 }
 
 func run() {
-	var db *sql.DB
+	var db *pgxpool.Pool
 	var cstore store.Store
 
 	r := chi.NewRouter()
@@ -49,7 +49,7 @@ func run() {
 		logger.Log.Info("DSN " + config.DatabaseDsn)
 		logger.Log.Info("Store postgres")
 
-		db, err = sql.Open("postgres", config.DatabaseDsn)
+		db, err = pgxpool.New(context.Background(), config.DatabaseDsn)
 
 		if err != nil {
 			logger.Log.Info(err.Error())
