@@ -125,13 +125,13 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	bodyURL := uri.String()
 
 	encodedURL := a.encodeURL(bodyURL)
-	finalUrl := fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
+	finalURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
 
 	result := &json.Result{}
-	result.Result = finalUrl
+	result.Result = finalURL
 	response, err := easyjson.Marshal(result)
 	errsave := a.SaveURL(string(encodedURL), bodyURL)
-	
+
 	if errsave != nil && errors.Is(errsave, store.ErrUnique) {
 		fmt.Println("err")
 		w.WriteHeader(http.StatusConflict)
@@ -201,18 +201,18 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		batchSaveUrl := json.DBRow{
+		batchSaveURL := json.DBRow{
 			ShortURL:    currentItem.ShortURL,
 			OriginalURL: currentItem.OriginalURL,
 		}
 
-		batchOutputUrl := json.DBRow{
+		batchOutputURL := json.DBRow{
 			CorrelationID: currentItem.CorrelationID,
 			ShortURL:      fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL),
 		}
 
-		saveBatch = append(saveBatch, batchSaveUrl)
-		result = append(result, batchOutputUrl)
+		saveBatch = append(saveBatch, batchSaveURL)
+		result = append(result, batchOutputURL)
 	}
 
 	err = a.store.SaveBatchURL(context.Background(), saveBatch)
