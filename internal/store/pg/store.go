@@ -60,6 +60,19 @@ func (s *Store) Bootstrap(ctx context.Context) error {
 
 func (s *Store) SaveURL(ctx context.Context, original string, short string) error {
 
+	result := s.conn.QueryRow(ctx, "SELECT COUNT(*) as count FROM urls WHERE original_url LIKE $1", original)
+
+	var countValues int
+	err := result.Scan(&countValues)
+
+	if err != nil {
+		return err
+	}
+
+	if countValues > 0 {
+		return store.ErrUnique
+	}
+
 	_, errexec := s.conn.Exec(ctx, "INSERT INTO urls(original_url, short_url) VALUES($1, $2)", original, short)
 
 	if errexec != nil {
