@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	json2 "encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/laiker/shortener/cmd/config"
@@ -95,6 +96,8 @@ func (a *app) gzipMiddleware(h http.Handler) http.Handler {
 
 func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Info("shortenHandler")
+	logger.Log.Info(r.Method)
+	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -105,7 +108,8 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	urlType := &json.URL{}
@@ -114,35 +118,34 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	uri, err := url.ParseRequestURI(urlType.URL)
 
 	if err != nil {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	bodyURL := uri.String()
 
 	encodedURL := a.encodeURL(bodyURL)
+	finalURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
 
-	err = a.SaveURL(string(encodedURL), bodyURL)
+	result := &json.Result{}
+	result.Result = finalURL
+	response, err := easyjson.Marshal(result)
+	errsave := a.SaveURL(string(encodedURL), bodyURL)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if errsave != nil && errors.Is(errsave, store.ErrUnique) {
+		fmt.Println("err")
+		w.WriteHeader(http.StatusConflict)
+		w.Write(response)
 		return
 	}
 
-	result := &json.Result{}
-	result.Result = fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL)
-
-	response, err := easyjson.Marshal(result)
-
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-
 	w.Write(response)
-
 }
 
 func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +160,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	var batchSlice json.BatchURLSlice
@@ -165,9 +168,9 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	err = easyjson.Unmarshal(body, &batchSlice)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 	}
-	fmt.Println(batchSlice)
+
 	result := make(json.BatchURLSlice, 0)
 	saveBatch := make(json.BatchURLSlice, 0)
 
@@ -176,7 +179,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 		uri, err := url.ParseRequestURI(currentItem.OriginalURL)
 
 		if err != nil {
-			http.Error(w, "Invalid URL", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -186,23 +189,30 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = a.SaveURL(string(encodedURL), bodyURL)
 
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if err != nil && errors.Is(err, store.ErrUnique) {
+			logger.Log.Info("dublicate url")
+			w.WriteHeader(http.StatusConflict)
+			w.Write(encodedURL)
 			return
 		}
 
-		batchSaveUrl := json.DBRow{
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		batchSaveURL := json.DBRow{
 			ShortURL:    currentItem.ShortURL,
 			OriginalURL: currentItem.OriginalURL,
 		}
 
-		batchOutputUrl := json.DBRow{
+		batchOutputURL := json.DBRow{
 			CorrelationID: currentItem.CorrelationID,
 			ShortURL:      fmt.Sprintf("%s/%s", config.FlagOutputURL, encodedURL),
 		}
 
-		saveBatch = append(saveBatch, batchSaveUrl)
-		result = append(result, batchOutputUrl)
+		saveBatch = append(saveBatch, batchSaveURL)
+		result = append(result, batchOutputURL)
 	}
 
 	err = a.store.SaveBatchURL(context.Background(), saveBatch)
@@ -214,7 +224,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := easyjson.Marshal(result)
 
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -236,7 +246,7 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -245,24 +255,29 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = url.ParseRequestURI(bodyURL)
 
 	if err != nil {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	response := a.encodeURL(bodyURL)
-
-	logger.Log.Info(string(response) + " " + bodyURL)
+	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
 	err = a.SaveURL(string(response), bodyURL)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err != nil && errors.Is(err, store.ErrUnique) {
+		fmt.Println("test")
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(shortURL))
 		return
 	}
 
-	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
-	logger.Log.Info(config.FlagOutputURL)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
+	logger.Log.Info(config.FlagOutputURL)
 	w.Write([]byte(shortURL))
 
 }
