@@ -3,7 +3,6 @@ package pg
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -67,9 +66,9 @@ func (s *Store) SaveURL(ctx context.Context, original string, short string) erro
 		var pgErr *pgconn.PgError
 		isPgError := errors.As(errexec, &pgErr)
 		if isPgError && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			errexec = store.ErrUnique
+			return store.ErrUnique
 		}
-		return fmt.Errorf("%v", errexec)
+		return errexec
 	}
 
 	return nil
