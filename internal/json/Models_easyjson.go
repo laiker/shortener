@@ -176,6 +176,8 @@ func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson2(in *jlexer.Lexe
 			out.ShortURL = string(in.String())
 		case "original_url":
 			out.OriginalURL = string(in.String())
+		case "user_id":
+			out.UserID = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -226,6 +228,16 @@ func easyjsonD2ecc9deEncodeGithubComLaikerShortenerInternalJson2(out *jwriter.Wr
 		}
 		out.String(string(in.OriginalURL))
 	}
+	if in.UserID != "" {
+		const prefix string = ",\"user_id\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.UserID))
+	}
 	out.RawByte('}')
 }
 
@@ -261,7 +273,7 @@ func easyjsonD2ecc9deDecodeGithubComLaikerShortenerInternalJson3(in *jlexer.Lexe
 		in.Delim('[')
 		if *out == nil {
 			if !in.IsDelim(']') {
-				*out = make(BatchURLSlice, 0, 1)
+				*out = make(BatchURLSlice, 0, 0)
 			} else {
 				*out = BatchURLSlice{}
 			}
