@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
-	store "github.com/laiker/shortener/internal/store"
+	"github.com/laiker/shortener/internal/store"
 	"github.com/laiker/shortener/internal/store/file"
 	"github.com/laiker/shortener/internal/store/memory"
 	"github.com/laiker/shortener/internal/store/pg"
@@ -71,7 +71,9 @@ func run() {
 	appInstance := newApp(cstore)
 
 	r.Use(logger.RequestLogger, appInstance.gzipMiddleware)
+	r.Use(logger.RequestLogger, appInstance.userMiddleware)
 	r.HandleFunc("/api/shorten/batch", appInstance.shortenBatchHandler)
+	r.HandleFunc("/api/user/urls", appInstance.userUrlsHandler)
 	r.HandleFunc("/api/shorten", appInstance.shortenHandler)
 	r.HandleFunc("/{id}", appInstance.decodeHandler)
 	r.HandleFunc("/ping", appInstance.pingHandler)

@@ -73,10 +73,13 @@ func (s *Store) SaveURL(ctx context.Context, original, short string) error {
 		lastID = lastRow.ID + 1
 	}
 
+	userID, _ := ctx.Value("userID").(string)
+
 	row := &json.DBRow{
 		ID:          lastID,
 		OriginalURL: original,
 		ShortURL:    short,
+		UserID:      userID,
 	}
 
 	err := encoder.Encode(row)
@@ -121,4 +124,28 @@ func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 			return row, errors.New("url not found") // Другая ошибка чтения файла
 		}
 	}
+}
+
+func (s *Store) GetUserURLs(ctx context.Context, userID string) ([]json.DBRow, error) {
+	reader := bufio.NewReader(s.file)
+
+	var URLs []json.DBRow
+	row := json.DBRow{}
+
+	for {
+
+		line, errline := reader.ReadString('\n')
+
+		if err := json2.Unmarshal([]byte(line), &row); err != nil || errline != nil {
+			continue
+		}
+
+		// Если найдено совпадение, возвращаем OriginalURL
+		if row.UserID == strings.TrimSpace(userID) {
+			URLs = append(URLs, row)
+		}
+
+	}
+
+	return URLs, nil
 }

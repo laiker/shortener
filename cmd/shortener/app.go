@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
 	compresser "github.com/laiker/shortener/internal/gzip"
@@ -33,6 +34,14 @@ func newApp(s store.Store) *app {
 		store: s,
 	}
 }
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
+}
+
+const TOKEN_EXP = time.Hour * 3
+const SECRET_KEY = "supersecretkey"
 
 func (a *app) pingHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -94,6 +103,112 @@ func (a *app) gzipMiddleware(h http.Handler) http.Handler {
 	})
 }
 
+// BuildJWTString создаёт токен и возвращает его в виде строки.
+func BuildJWTString(userId string) (string, error) {
+
+	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			// когда создан токен
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+		},
+		// собственное утверждение
+		UserID: userId,
+	})
+
+	// создаём строку токена
+	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	if err != nil {
+		return "", err
+	}
+
+	// возвращаем строку токена
+	return tokenString, nil
+}
+
+func GetUserID(tokenString string) (string, error) {
+	claims := &Claims{}
+	logger.Log.Info("Try get user ID from " + tokenString)
+	token, err := jwt.ParseWithClaims(tokenString, claims,
+		func(t *jwt.Token) (interface{}, error) {
+
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+
+			return []byte(SECRET_KEY), nil
+		})
+	if err != nil {
+		return "", err
+	}
+
+	if !token.Valid {
+		fmt.Println("Token is not valid")
+		return "", errors.New("token is not valid")
+	}
+
+	fmt.Println("Token is valid")
+	return claims.UserID, nil
+}
+
+func generateUniqueID() string {
+	return fmt.Sprintf("%d", time.Now().UnixNano())
+}
+
+func (a *app) userMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
+		authIdCookie, err := r.Cookie("Authorization")
+		authIdHeader := r.Header.Get("Authorization")
+
+		var userId string
+		var tokenString string
+
+		if authIdHeader != "" {
+			tokenString = authIdHeader
+			userId, _ = GetUserID(authIdHeader)
+		}
+
+		if err == nil && userId == "" {
+			tokenString = authIdCookie.Value
+			userId, _ = GetUserID(authIdCookie.Value)
+		}
+
+		if userId == "" {
+			userId = generateUniqueID()
+			logger.Log.Info("user ID generated: " + userId)
+
+			tokenString, err = BuildJWTString(userId)
+			fmt.Println(tokenString)
+			if err != nil {
+				logger.Log.Info("Create new token failed: " + err.Error())
+				http.Error(w, "Token creation failed", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		/*authCookie := http.Cookie{
+			Name:     "Authorization",
+			Value:    tokenString,
+			Path:     "/",
+			MaxAge:   3600000,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		}
+
+		http.SetCookie(w, &authCookie)*/
+
+		w.Header().Set("Authorization", tokenString)
+
+		ctx := context.WithValue(r.Context(), config.UserIDKey, userId)
+		r = r.WithContext(ctx)
+
+		h.ServeHTTP(ow, r)
+	})
+}
+
 func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Info("shortenHandler")
 	logger.Log.Info(r.Method)
@@ -130,7 +245,8 @@ func (a *app) shortenHandler(w http.ResponseWriter, r *http.Request) {
 	result := &json.Result{}
 	result.Result = finalURL
 	response, err := easyjson.Marshal(result)
-	errsave := a.SaveURL(string(encodedURL), bodyURL)
+
+	errsave := a.SaveURL(r.Context(), string(encodedURL), bodyURL)
 
 	if errsave != nil && errors.Is(errsave, store.ErrUnique) {
 		fmt.Println("err")
@@ -160,6 +276,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
+		logger.Log.Info("Bad Request body not read")
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -168,6 +285,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	err = easyjson.Unmarshal(body, &batchSlice)
 
 	if err != nil {
+		logger.Log.Info("Bad Request can't unmarshal")
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -180,6 +298,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			logger.Log.Info("Error can't parse")
 			return
 		}
 
@@ -187,7 +306,7 @@ func (a *app) shortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 		encodedURL := a.encodeURL(bodyURL)
 
-		err = a.SaveURL(string(encodedURL), bodyURL)
+		err = a.SaveURL(r.Context(), string(encodedURL), bodyURL)
 
 		if err != nil && errors.Is(err, store.ErrUnique) {
 			logger.Log.Info("dublicate url")
@@ -246,6 +365,7 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
+		logger.Log.Info("Bad Request can't read")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -255,6 +375,7 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = url.ParseRequestURI(bodyURL)
 
 	if err != nil {
+		logger.Log.Info("Bad Request can't parse")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -262,7 +383,7 @@ func (a *app) encodeHandler(w http.ResponseWriter, r *http.Request) {
 	response := a.encodeURL(bodyURL)
 	shortURL := fmt.Sprintf("%s/%s", config.FlagOutputURL, response)
 
-	err = a.SaveURL(string(response), bodyURL)
+	err = a.SaveURL(r.Context(), string(response), bodyURL)
 
 	if err != nil && errors.Is(err, store.ErrUnique) {
 		fmt.Println("test")
@@ -303,6 +424,51 @@ func (a *app) decodeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+func (a *app) userUrlsHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info("userUrlsHandler")
+
+	userId := r.Context().Value(config.UserIDKey).(string)
+
+	logger.Log.Info("get userId " + userId)
+
+	if userId == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+
+	fmt.Println(userId)
+	urls, err := a.store.GetUserURLs(r.Context(), userId)
+
+	if err != nil || len(urls) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	result := make(json.BatchURLSlice, 0)
+
+	for i := 0; i < len(urls); i++ {
+		currentItem := urls[i]
+
+		batchOutputURL := json.DBRow{
+			OriginalURL: currentItem.ShortURL,
+			ShortURL:    fmt.Sprintf("%s/%s", config.FlagOutputURL, currentItem.OriginalURL),
+		}
+
+		result = append(result, batchOutputURL)
+	}
+
+	response, err := easyjson.Marshal(result)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(response)
+}
+
 func (a *app) decodeURL(code string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(code)
 
@@ -317,14 +483,13 @@ func (a *app) encodeURL(url string) []byte {
 	return []byte(base64.StdEncoding.EncodeToString([]byte(url)))
 }
 
-func (a *app) SaveURL(short, original string) error {
+func (a *app) SaveURL(ctx context.Context, short, original string) error {
 
 	if config.DatabaseDsn != "" {
 		logger.Log.Info("Try to save url into Database: " + original)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		ctxx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
-
-		err := a.store.SaveURL(ctx, short, original)
+		err := a.store.SaveURL(ctxx, short, original)
 
 		if err != nil {
 			return err

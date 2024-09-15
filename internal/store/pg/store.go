@@ -3,10 +3,12 @@ package pg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/laiker/shortener/cmd/config"
 	logger "github.com/laiker/shortener/internal"
 	"github.com/laiker/shortener/internal/json"
 	"github.com/laiker/shortener/internal/store"
@@ -73,7 +75,13 @@ func (s *Store) SaveURL(ctx context.Context, original string, short string) erro
 		return store.ErrUnique
 	}
 
-	_, errexec := s.conn.Exec(ctx, "INSERT INTO urls(original_url, short_url) VALUES($1, $2)", original, short)
+	userID := ctx.Value(config.UserIDKey)
+
+	if userID == nil {
+		return errors.New("Не получен ID пользователя")
+	}
+
+	_, errexec := s.conn.Exec(ctx, "INSERT INTO urls(original_url, short_url, user_id) VALUES($1, $2, $3)", original, short, userID)
 
 	if errexec != nil {
 		var pgErr *pgconn.PgError
@@ -137,4 +145,30 @@ func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 	}
 
 	return URLRow, nil
+}
+
+func (s *Store) GetUserURLs(ctx context.Context, userID string) ([]json.DBRow, error) {
+
+	var URLs []json.DBRow
+	URLRow := json.DBRow{}
+
+	row, err := s.conn.Query(ctx, "SELECT id, original_url, short_url FROM urls WHERE user_id = $1", userID)
+
+	if err != nil {
+		return URLs, err
+	}
+
+	for row.Next() {
+		err := row.Scan(&URLRow.ID, &URLRow.OriginalURL, &URLRow.ShortURL)
+
+		if err != nil {
+			continue
+		}
+		fmt.Println(URLRow)
+		URLs = append(URLs, URLRow)
+	}
+
+	row.Close()
+
+	return URLs, nil
 }

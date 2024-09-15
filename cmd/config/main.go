@@ -5,11 +5,15 @@ import (
 	"os"
 )
 
+type ContextKey string
+
 var FlagRunAddr string
 var FlagOutputURL string
 var FlagLogLevel string
 var StoragePath string
 var DatabaseDsn string
+
+const UserIDKey ContextKey = "userID"
 
 func ParseFlags() {
 	flag.StringVar(&FlagRunAddr, "a", "localhost:8080", "Initial webserver URL")
@@ -34,4 +38,5 @@ func ParseFlags() {
 	if envDatabaseDsn := os.Getenv("DATABASE_DSN"); envDatabaseDsn != "" {
 		DatabaseDsn = envDatabaseDsn
 	}
+
 }

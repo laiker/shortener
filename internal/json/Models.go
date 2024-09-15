@@ -16,6 +16,7 @@ type DBRow struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 	ShortURL      string `json:"short_url,omitempty"`
 	OriginalURL   string `json:"original_url,omitempty"`
+	UserID        string `json:"user_id,omitempty"`
 }
 
 //easyjson:json

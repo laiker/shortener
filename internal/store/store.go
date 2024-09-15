@@ -15,4 +15,5 @@ type Store interface {
 	PingContext(ctx context.Context) error
 	Bootstrap(ctx context.Context) error
 	GetURL(ctx context.Context, short string) (json.DBRow, error)
+	GetUserURLs(ctx context.Context, userID string) ([]json.DBRow, error)
 }

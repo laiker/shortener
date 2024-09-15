@@ -3,7 +3,9 @@ package memory
 import (
 	"context"
 	"errors"
+	"github.com/laiker/shortener/cmd/config"
 	"github.com/laiker/shortener/internal/json"
+	"strings"
 )
 
 type data map[string]json.DBRow
@@ -30,10 +32,13 @@ func (s *Store) Bootstrap(ctx context.Context) error {
 
 func (s *Store) SaveURL(ctx context.Context, original, short string) error {
 
+	userID, _ := ctx.Value(config.UserIDKey).(string)
+
 	url := json.DBRow{
 		ID:          len(s.data) + 1,
 		OriginalURL: original,
 		ShortURL:    short,
+		UserID:      userID,
 	}
 
 	s.data[short] = url
@@ -61,4 +66,16 @@ func (s *Store) GetURL(ctx context.Context, short string) (json.DBRow, error) {
 	}
 
 	return dbRow, nil
+}
+
+func (s *Store) GetUserURLs(ctx context.Context, userID string) ([]json.DBRow, error) {
+	var URLs []json.DBRow
+
+	for _, row := range s.data {
+		if row.UserID == strings.TrimSpace(userID) {
+			URLs = append(URLs, row)
+		}
+	}
+
+	return URLs, nil
 }
